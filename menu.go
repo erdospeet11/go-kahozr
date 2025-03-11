@@ -7,8 +7,9 @@ import (
 )
 
 type MainMenu struct {
-	playButton r.Rectangle
-	bookIcon   struct {
+	playButton    r.Rectangle
+	settingButton r.Rectangle
+	bookIcon      struct {
 		Texture  r.Texture2D
 		Position r.Rectangle
 		IsOpen   bool
@@ -39,6 +40,12 @@ func NewMainMenu(_ r.Font) *MainMenu {
 			Width:  200,
 			Height: 50,
 		},
+		settingButton: r.Rectangle{
+			X:      300,
+			Y:      370,
+			Width:  200,
+			Height: 50,
+		},
 	}
 }
 
@@ -52,6 +59,10 @@ func (m *MainMenu) Update() bool {
 		}
 
 		if r.CheckCollisionPointRec(mousePos, m.playButton) {
+			return true
+		}
+
+		if r.CheckCollisionPointRec(mousePos, m.settingButton) {
 			return true
 		}
 
@@ -72,8 +83,19 @@ func (m *MainMenu) Draw() {
 	titleX := 400 - titleWidth/2 // 400 is half of window width (800/2)
 	r.DrawText(titleText, titleX, 200, titleSize, r.White)
 
+	// Draw and center PLAI text
 	r.DrawRectangleRec(m.playButton, r.DarkGray)
-	r.DrawText("PLAI", int32(m.playButton.X+70), int32(m.playButton.Y+10), 30, r.White)
+	plaiText := "PLAI"
+	plaiTextWidth := r.MeasureText(plaiText, 30)
+	plaiTextX := int32(m.playButton.X) + (int32(m.playButton.Width)-plaiTextWidth)/2
+	r.DrawText(plaiText, plaiTextX, int32(m.playButton.Y+10), 30, r.White)
+
+	// Draw and center SETTINGZ text
+	r.DrawRectangleRec(m.settingButton, r.DarkGray)
+	settingzText := "SETTINGZ"
+	settingzTextWidth := r.MeasureText(settingzText, 30)
+	settingzTextX := int32(m.settingButton.X) + (int32(m.settingButton.Width)-settingzTextWidth)/2
+	r.DrawText(settingzText, settingzTextX, int32(m.settingButton.Y+10), 30, r.White)
 
 	r.DrawText("v0.0 pre-alpha", 10, 570, 20, r.Gray)
 
