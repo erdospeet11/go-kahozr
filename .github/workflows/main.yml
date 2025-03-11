@@ -1,0 +1,72 @@
+name: Game CI/CD
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  release:
+    types: [ created ]
+
+jobs:
+  build:
+    name: Build and Test
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Set up Go
+      uses: actions/setup-go@v3
+      with:
+        go-version: '1.21'
+    
+    - name: Install dependencies (Linux)
+      if: runner.os == 'Linux'
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y libgl1-mesa-dev libxi-dev libxcursor-dev libxrandr-dev libxinerama-dev libwayland-dev libxkbcommon-dev
+
+    - name: Build
+      run: go build -v ./...
+    
+    - name: Build game binary
+      run: |
+        go build -o kahozr-game .
+    
+    - name: Upload game artifact
+      uses: actions/upload-artifact@v3
+      with:
+        name: kahozr-${{ runner.os }}
+        path: kahozr-game*
+
+  release:
+    name: Create Release
+    needs: build
+    if: github.event_name == 'release'
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Download all artifacts
+      uses: actions/download-artifact@v3
+    
+    - name: Create release assets
+      run: |
+        mkdir release
+        cp kahozr-Linux/kahozr-game release/kahozr-linux
+        cp kahozr-Windows/kahozr-game.exe release/kahozr-windows.exe
+        cp kahozr-macOS/kahozr-game release/kahozr-macos
+        cp -r assets release/
+    
+    - name: Zip release assets
+      run: |
+        cd release
+        zip -r ../kahozr-release.zip .
+    
+    - name: Upload to release
+      uses: softprops/action-gh-release@v1
+      with:
+        files: kahozr-release.zip
