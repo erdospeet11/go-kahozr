@@ -1,0 +1,98 @@
+name: Game CI/CD
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  release:
+    types: [ created ]
+
+# Add permissions to solve token issues
+permissions:
+  contents: write
+  packages: read
+
+jobs:
+  build:
+    name: Build and Test
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15  # Set timeout for the job
+    strategy:
+      fail-fast: false  # Continue with other OS builds even if one fails
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        
+    steps:
+    - name: Configure git to use LF
+      run: |
+        git config --global core.autocrlf false
+        git config --global core.eol lf
+    
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 1
+        lfs: false
+        persist-credentials: true
+        timeout-minutes: 5
+    
+    - name: Set up Go
+      uses: actions/setup-go@v5
+      with:
+        go-version: '1.21'
+        cache: true
+    
+    - name: Install dependencies (Linux)
+      if: runner.os == 'Linux'
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y libgl1-mesa-dev libxi-dev libxcursor-dev libxrandr-dev libxinerama-dev libwayland-dev libxkbcommon-dev
+
+    - name: Build
+      run: go build -v ./...
+    
+    - name: Build game binary
+      run: |
+        go build -o kahozr-game${{ runner.os == 'Windows' && '.exe' || '' }} .
+    
+    - name: Upload game artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: kahozr-${{ runner.os }}
+        path: kahozr-game${{ runner.os == 'Windows' && '.exe' || '' }}
+        retention-days: 7
+
+  release:
+    name: Create Release
+    needs: build
+    if: github.event_name == 'release'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Download all artifacts
+      uses: actions/download-artifact@v4
+    
+    - name: Create release assets
+      run: |
+        mkdir -p release
+        if [ -f "kahozr-Linux/kahozr-game" ]; then cp kahozr-Linux/kahozr-game release/kahozr-linux; fi
+        if [ -f "kahozr-Windows/kahozr-game.exe" ]; then cp kahozr-Windows/kahozr-game.exe release/kahozr-windows.exe; fi
+        if [ -f "kahozr-macOS/kahozr-game" ]; then cp kahozr-macOS/kahozr-game release/kahozr-macos; fi
+        cp -r assets release/ || echo "Assets directory not found, skipping"
+    
+    - name: Zip release assets
+      run: |
+        cd release
+        zip -r ../kahozr-release.zip .
+    
+    - name: Upload to release
+      uses: softprops/action-gh-release@v2
+      with:
+        files: kahozr-release.zip
+        token: ${{ secrets.GITHUB_TOKEN }} 
