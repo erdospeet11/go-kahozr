@@ -17,10 +17,10 @@ jobs:
         os: [ubuntu-latest, windows-latest, macos-latest]
         
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     
     - name: Set up Go
-      uses: actions/setup-go@v3
+      uses: actions/setup-go@v5
       with:
         go-version: '1.21'
     
@@ -38,7 +38,7 @@ jobs:
         go build -o kahozr-game .
     
     - name: Upload game artifact
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4  # Updated from v3 to v4
       with:
         name: kahozr-${{ runner.os }}
         path: kahozr-game*
@@ -51,7 +51,7 @@ jobs:
     
     steps:
     - name: Download all artifacts
-      uses: actions/download-artifact@v3
+      uses: actions/download-artifact@v4  # Updated from v3 to v4
     
     - name: Create release assets
       run: |
@@ -67,6 +67,6 @@ jobs:
         zip -r ../kahozr-release.zip .
     
     - name: Upload to release
-      uses: softprops/action-gh-release@v1
+      uses: softprops/action-gh-release@v2  # Updated to v2
       with:
         files: kahozr-release.zip
